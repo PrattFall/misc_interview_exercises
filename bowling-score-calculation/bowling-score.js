@@ -2,8 +2,13 @@ const add = (a, b) => a + b;
 const interpolate = (inter) => (acc, x) => acc + inter + x;
 
 class Frame {
-    constructor () {
+    constructor (id) {
         this.scores = [];
+        this.id = id;
+    }
+
+    getId () {
+        return this.id;
     }
 
     scoreTotal () {
@@ -52,19 +57,23 @@ class Game {
         this.frames = [];
     }
 
-    frame (frame) {
-        if(typeof this.frames[frame] === "undefined")
+    frame (frameId) {
+        if(typeof this.frames[frameId] === "undefined")
         {
-            this.frames[frame] = new Frame(frame);
+            this.frames[frameId] = new Frame(frameId);
         }
 
-        return this.frames[frame];
+        return this.frames[frameId];
+    }
+
+    nextFrame (frame) {
+        return this.frame(frame.getId() + 1);
     }
 
     // Potentially overly complicated
     // TODO: Refactor if possible
-    handleSpecial (frameIndex, steps) {
-        let nextFrame = this.frame(frameIndex + 1);
+    handleSpecial (frame, steps) {
+        let nextFrame = this.nextFrame(frame);
         let stepsLeft = steps;
         let result = 0;
 
@@ -75,7 +84,7 @@ class Game {
 
             if(stepsLeft > 0)
             {
-                result += this.handleSpecial(frameIndex + 1, stepsLeft);
+                result += this.handleSpecial(nextFrame, stepsLeft);
             }
         }
         else
@@ -92,22 +101,22 @@ class Game {
         return result;
     }
 
+    special (frame) {
+        if(frame.isStrike())
+        {
+            return this.handleSpecial(frame, 2);
+        }
+        else if(frame.isSpare())
+        {
+            return this.handleSpecial(frame, 1);
+        }
+
+        return 0;
+    }
+
     scoreTotal () {
         return this.frames
-            .map((frame, i) => {
-                let sum = frame.scoreTotal();
-
-                if(frame.isStrike())
-                {
-                    sum += this.handleSpecial(i, 2);
-                }
-                else if(frame.isSpare())
-                {
-                    sum += this.handleSpecial(i, 1);
-                }
-
-                return sum;
-            })
+            .map((frame) => frame.scoreTotal() + this.special(frame))
             .reduce(add, 0);
     }
 }
